@@ -50,3 +50,30 @@ module.exports.register = async (event, context) => {
 		};
 	}
 }
+
+module.exports.me = async (event, context) => {
+	context.callbackWaitsForEmptyEventLoop = false;
+
+	try {
+		const connect = await connectToDatabase();
+
+		// the decoded.id from the VerifyToken.auth will be passed along as the principalId under the authorizer
+		const session = me(event.requestContext.authorizer.principalId)
+
+		return {
+			statusCode: 200,
+			body: JSON.stringify(session);
+		}
+	} catch(error) {
+		return {
+			statusCode: err.statusCode || 500,
+			headers: {
+				'Content-Type': 'text/plain',
+			},
+			body: {
+				message: error.message,
+				stack: error.stack,
+			},
+		};
+	}
+}

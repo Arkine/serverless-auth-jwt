@@ -33,7 +33,7 @@ exports.register = async (eventBody) => {
 		const user = await user.findOne({ email });
 
 		if (user) {
-			Promise.reject(new Error('User with that email already exists!'));
+			return Promise.reject(new Error('User with that email already exists!'));
 		}
 
 		const hash = await bcrypt.hash(password, 8);
@@ -59,7 +59,7 @@ exports.login = async (eventBody) => {
 		const user = await User.findOne({ email });
 
 		if (!user) {
-			Promise.reject(new Error('User with that email does not exist'));
+			return Promise.reject(new Error('User with that email does not exist'));
 		}
 
 		const token = await comparePassword(password, user.password, user._id);
@@ -77,11 +77,25 @@ exports.comparePassword = async (eventPassword, userPassword, userId) => {
 	try {
 		const isValid = await bcrypt.compare(eventPassword, userPassword);
 		if (!isValid) {
-			Promise.reject(new Error('The credentials do not match.'));
+			return Promise.reject(new Error('The credentials do not match.'));
 		}
 
 		return signToken(userId);
 	} catch(error) {
 		return new Error(error);
+	}
+}
+
+exports.me = async (userId) => {
+	try {
+		const user = await User.findById(userId, { password: 0 });
+
+		if (!user) {
+			return Promise.reject('No user found');
+		}
+
+		return user;
+	} catch(error) {
+		return Promise.reject(new Error(error));
 	}
 }
