@@ -1,6 +1,8 @@
 const connectToDatabase = require('../db');
 
 const register = require('./helpers').register;
+const login = require('./helpers').login;
+const me = require('./helpers').me;
 
 module.exports.register = async (event, context) => {
 	context.callbackWaitsForEmptyEventLoop = false;
@@ -26,7 +28,7 @@ module.exports.register = async (event, context) => {
 	}
 };
 
-module.exports.register = async (event, context) => {
+module.exports.login = async (event, context) => {
 	context.callbackWaitsForEmptyEventLoop = false;
 
 	try {
@@ -58,15 +60,15 @@ module.exports.me = async (event, context) => {
 		const connect = await connectToDatabase();
 
 		// the decoded.id from the VerifyToken.auth will be passed along as the principalId under the authorizer
-		const session = me(event.requestContext.authorizer.principalId)
+		const session = await me(event.requestContext.authorizer.principalId);
 
 		return {
 			statusCode: 200,
-			body: JSON.stringify(session);
+			body: JSON.stringify(session),
 		}
 	} catch(error) {
 		return {
-			statusCode: err.statusCode || 500,
+			statusCode: error.statusCode || 500,
 			headers: {
 				'Content-Type': 'text/plain',
 			},

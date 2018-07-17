@@ -2,13 +2,13 @@ const User = require('../user/User');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs-then');
 
-exports.signToken = (id) => {
-	return jwt.sign({ id }, process.env.JWT_SECRET, {
+const signToken = async (id) => {
+	return await jwt.sign({ id }, process.env.JWT_SECRET, {
 		expiresIn: '24h',
 	});
 }
 
-exports.checkIfInputIsValid = (eventBody) => {
+const checkIfInputIsValid = (eventBody) => {
 	if (!(eventBody.password && eventBody.password.length >= 7)) {
 		return Promise.reject(new Error('Password error. Password needs to be longer than 8 characters.'));
 	}
@@ -24,13 +24,30 @@ exports.checkIfInputIsValid = (eventBody) => {
 	return Promise.resolve();
 };
 
+
+const comparePassword = async (eventPassword, userPassword, userId) => {
+	try {
+		const isValid = await bcrypt.compare(eventPassword, userPassword);
+		if (!isValid) {
+			return Promise.reject(new Error('The credentials do not match.'));
+		}
+
+		return signToken(userId);
+	} catch(error) {
+		return Promise.reject(new Error(error));
+	}
+}
+
 exports.register = async (eventBody) => {
+	console.log('registering....');
 	const {name, email, password} = eventBody;
 
 	try {
 		await checkIfInputIsValid(eventBody);
+		console.log('here')
 
-		const user = await user.findOne({ email });
+
+		const user = await User.findOne({ email });
 
 		if (user) {
 			return Promise.reject(new Error('User with that email already exists!'));
@@ -38,22 +55,22 @@ exports.register = async (eventBody) => {
 
 		const hash = await bcrypt.hash(password, 8);
 
-		const user = await User.create({
+		const newUser = await User.create({
 			name,
 			email,
 			password: hash,
 		});
-
 		return {
 			auth: true,
-			token: signToken(user._id),
+			token: await signToken(newUser._id),
 		}
 	} catch(error) {
-		return new Error(error);
+		return Promise.reject(new Error(error));
 	}
 }
 
 exports.login = async (eventBody) => {
+	console.log('Logging in....');
 	const {email, password} = eventBody;
 	try {
 		const user = await User.findOne({ email });
@@ -69,20 +86,7 @@ exports.login = async (eventBody) => {
 			token,
 		};
 	} catch (error) {
-		return new Error(error);
-	}
-}
-
-exports.comparePassword = async (eventPassword, userPassword, userId) => {
-	try {
-		const isValid = await bcrypt.compare(eventPassword, userPassword);
-		if (!isValid) {
-			return Promise.reject(new Error('The credentials do not match.'));
-		}
-
-		return signToken(userId);
-	} catch(error) {
-		return new Error(error);
+		return Promise.reject(new Error(error));
 	}
 }
 
